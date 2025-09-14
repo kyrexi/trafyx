@@ -1,11 +1,14 @@
 #!/bin/bash
 
-# SSL Certificate Renewal Script for nuts.kyrexi.tech
+# SSL Certificate Renewal Script for trafyx.kyrexi.tech
 # This script should be placed in your project directory
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
+# Repo root (two levels up from apps/backend)
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
 
 # Log file for renewal attempts
 LOG_FILE="$SCRIPT_DIR/ssl-renewal.log"
@@ -19,28 +22,29 @@ log() {
 log "Starting SSL certificate renewal check..."
 
 # Check if certificates need renewal (certbot only renews if < 30 days left)
-RENEWAL_OUTPUT=$(docker-compose run --rm certbot renew --dry-run 2>&1)
+log "Using compose file: $COMPOSE_FILE"
+RENEWAL_OUTPUT=$(docker compose -f "$COMPOSE_FILE" run --rm certbot renew --dry-run 2>&1)
 RENEWAL_EXIT_CODE=$?
 
 if [ $RENEWAL_EXIT_CODE -eq 0 ]; then
     log "Certificate renewal check passed. Attempting actual renewal..."
     
     # Perform actual renewal
-    ACTUAL_RENEWAL=$(docker-compose run --rm certbot renew --quiet 2>&1)
+    ACTUAL_RENEWAL=$(docker compose -f "$COMPOSE_FILE" run --rm certbot renew --quiet 2>&1)
     ACTUAL_EXIT_CODE=$?
     
     if [ $ACTUAL_EXIT_CODE -eq 0 ]; then
         log "Certificate renewal successful. Restarting nginx..."
         
         # Restart nginx to load new certificates
-        docker-compose restart nginx
+    docker compose -f "$COMPOSE_FILE" restart nginx
         NGINX_RESTART_CODE=$?
         
         if [ $NGINX_RESTART_CODE -eq 0 ]; then
             log "Nginx restarted successfully. Certificate renewal completed."
             
             # Test HTTPS to make sure everything is working
-            if curl -f -s https://nuts.kyrexi.tech/ > /dev/null; then
+            if curl -f -s https://trafyx.kyrexi.tech/ > /dev/null; then
                 log "HTTPS test successful. All systems operational."
             else
                 log "WARNING: HTTPS test failed after renewal. Manual intervention may be required."

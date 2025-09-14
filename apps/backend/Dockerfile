@@ -1,30 +1,38 @@
-# Start from the official Golang image
-FROM golang:1.24.5-alpine AS builder
+# Multi-stage build for Go backend
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod and sum files
+# Install build deps
+RUN apk add --no-cache git
+
+# Cache modules
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy the source code
+# Copy source
 COPY . .
 
-# Build the Go app
-RUN go build -o main .
+# Build static binary
+ENV CGO_ENABLED=0 GOOS=linux
+RUN go build -ldflags "-s -w" -o /app/main .
 
-# Start a new minimal image
+# Runtime image
 FROM alpine:latest
-WORKDIR /root/
+WORKDIR /app
 
-# Copy the binary from the builder
-COPY --from=builder /app/main .
+# CA certificates for outbound HTTPS from the app
+RUN apk add --no-cache ca-certificates && update-ca-certificates
 
-# Expose the port
-EXPOSE 8080
+# Copy binary
+COPY --from=builder /app/main ./main
 
-# Set environment variable for port
-ENV PORT=8080
+# Expose the application port (internal only; not published by compose)
+EXPOSE 5000
 
-# Command to run
+# Environment
+ENV PORT=5000
+ENV GIN_MODE=release
+
+# Run
 CMD ["./main"]

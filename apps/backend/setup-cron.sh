@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to set up automatic SSL certificate renewal
+# Script to set up automatic SSL certificate renewal for trafyx.kyrexi.tech
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "🔧 Setting up automatic SSL certificate renewal..."

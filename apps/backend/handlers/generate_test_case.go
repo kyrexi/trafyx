@@ -35,7 +35,7 @@ func GenerateTestCases(c *gin.Context) {
 		return
 	}
 
-	// Prepare test case configuration
+	// Prepare test case configuration with robust null/string handling
 	testCaseConfig := struct {
 		Method          string
 		URL             string
@@ -44,8 +44,8 @@ func GenerateTestCases(c *gin.Context) {
 	}{
 		Method:          apiConfig.Method,
 		URL:             apiConfig.URL,
-		Headers:         parseHeaders(apiConfig.Headers),
-		PayloadTemplate: parsePayload(apiConfig.Payload),
+		Headers:         parseHeadersNullable(apiConfig.Headers),
+		PayloadTemplate: parsePayloadNullable(apiConfig.Payload),
 	}
 
 	// Generate test cases
@@ -105,7 +105,26 @@ func storeTestCases(apiID string, testCases []models.TestCase, createdBy string)
 		tc.APIID, _ = bson.ObjectIDFromHex(apiID)
 		tc.CreatedBy = createdBy
 
-		// Insert the test case
+		// Ensure headers and payload are either nil or stringified JSON pointer
+		if tc.Headers == nil || (tc.Headers != nil && (*tc.Headers == "" || *tc.Headers == "null" || *tc.Headers == "{}")) {
+			tc.Headers = nil
+		} else {
+			if !isJSONString(*tc.Headers) {
+				jsonStr, _ := json.Marshal(*tc.Headers)
+				s := string(jsonStr)
+				tc.Headers = &s
+			}
+		}
+		if tc.Payload == nil || (tc.Payload != nil && (*tc.Payload == "" || *tc.Payload == "null" || *tc.Payload == "{}")) {
+			tc.Payload = nil
+		} else {
+			if !isJSONString(*tc.Payload) {
+				jsonStr, _ := json.Marshal(*tc.Payload)
+				s := string(jsonStr)
+				tc.Payload = &s
+			}
+		}
+
 		_, err := collection.InsertOne(ctx, tc)
 		if err != nil {
 			log.Printf("Failed to insert test case: %v", err)
@@ -260,13 +279,13 @@ func generateNegativeTestCases(config struct {
 	}
 	negativeCases = append(negativeCases, invalidURLCase)
 
-	// Empty payload
+	// Empty payload -> store as true null
 	emptyPayloadCase := models.TestCase{
 		Name:            fmt.Sprintf("%s Negative - Empty Payload", strings.ToUpper(config.Method)),
 		Method:          config.Method,
 		URL:             config.URL,
 		Headers:         stringifyHeaders(config.Headers),
-		Payload:         "{}",
+		Payload:         nil,
 		Description:     "Request with empty payload",
 		ExpectedOutcome: 400,
 	}
@@ -337,26 +356,56 @@ func generateEdgeTestCases(config struct {
 
 // Utility functions
 
-func stringifyHeaders(headers map[string]string) string {
-	headersJSON, _ := json.Marshal(headers)
-	return string(headersJSON)
-}
-
-func stringifyPayload(payload map[string]interface{}) string {
-	payloadJSON, _ := json.Marshal(payload)
-	return string(payloadJSON)
-}
-
-func parseHeaders(headers string) map[string]string {
+// parseHeadersNullable parses a *stringified JSON or null to map, returns nil if input is nil, empty, or "null"
+func parseHeadersNullable(headers *string) map[string]string {
+	if headers == nil || *headers == "" || *headers == "null" {
+		return nil
+	}
 	var headersMap map[string]string
-	_ = json.Unmarshal([]byte(headers), &headersMap)
+	_ = json.Unmarshal([]byte(*headers), &headersMap)
 	return headersMap
 }
 
-func parsePayload(payload string) map[string]interface{} {
+// parsePayloadNullable parses a *stringified JSON or null to map, returns nil if input is nil, empty, or "null"
+func parsePayloadNullable(payload *string) map[string]interface{} {
+	if payload == nil || *payload == "" || *payload == "null" {
+		return nil
+	}
 	var payloadMap map[string]interface{}
-	_ = json.Unmarshal([]byte(payload), &payloadMap)
+	_ = json.Unmarshal([]byte(*payload), &payloadMap)
 	return payloadMap
+}
+
+// stringifyHeaders returns nil if input is nil, else pointer to stringified JSON
+func stringifyHeaders(headers map[string]string) *string {
+	if headers == nil || len(headers) == 0 {
+		return nil
+	}
+	headersJSON, _ := json.Marshal(headers)
+	s := string(headersJSON)
+	if s == "{}" { // normalize empty object to null
+		return nil
+	}
+	return &s
+}
+
+// stringifyPayload returns nil if input is nil, else pointer to stringified JSON
+func stringifyPayload(payload map[string]interface{}) *string {
+	if payload == nil || len(payload) == 0 {
+		return nil
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	s := string(payloadJSON)
+	if s == "{}" { // normalize empty object to null
+		return nil
+	}
+	return &s
+}
+
+// isJSONString checks if a string is valid JSON
+func isJSONString(s string) bool {
+	var js json.RawMessage
+	return json.Unmarshal([]byte(s), &js) == nil
 }
 
 // generateFullPayload creates a payload with all possible fields

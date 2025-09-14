@@ -86,12 +86,19 @@ func runTestCases(testCases []models.TestCase) ([]models.TestResult, error) {
 
 			start := time.Now()
 			headers := make(map[string]string)
-			if err := json.Unmarshal([]byte(tc.Headers), &headers); err != nil {
-				log.Println("Error in unmarshalling headers:", err)
-				return
+			if tc.Headers != nil && len(*tc.Headers) > 0 && *tc.Headers != "null" {
+				if err := json.Unmarshal([]byte(*tc.Headers), &headers); err != nil {
+					log.Println("Error in unmarshalling headers:", err)
+					// Continue without headers rather than failing the whole case
+				}
 			}
 
-			req, err := http.NewRequest(tc.Method, tc.URL, bytes.NewBuffer([]byte(tc.Payload)))
+			var bodyReader io.Reader
+			if tc.Payload != nil && *tc.Payload != "" && *tc.Payload != "null" {
+				bodyReader = bytes.NewBufferString(*tc.Payload)
+			}
+
+			req, err := http.NewRequest(tc.Method, tc.URL, bodyReader)
 			if err != nil {
 				log.Println("Error in creating new request:", err)
 				return
@@ -161,13 +168,11 @@ func saveResultsInDB(results []models.TestResult) (bool, error) {
 
 	// Pipeline to find the maximum RunCount for each TestCaseID
 	pipeline := bson.A{
-		bson.D{{"$match", bson.D{{"test_case_id", bson.D{{"$in", testCaseIDs}}}}}},
-		bson.D{{
-			"$group", bson.D{
-				{"_id", "$test_case_id"},
-				{"maxRunCount", bson.D{{"$max", "$run_count"}}},
-			},
-		}},
+		bson.D{{Key: "$match", Value: bson.D{{Key: "test_case_id", Value: bson.D{{Key: "$in", Value: testCaseIDs}}}}}},
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$test_case_id"},
+			{Key: "maxRunCount", Value: bson.D{{Key: "$max", Value: "$run_count"}}},
+		}}},
 	}
 
 	// Execute the aggregation to get max RunCounts

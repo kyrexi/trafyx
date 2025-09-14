@@ -59,8 +59,10 @@ export default function TestCaseCard({ testCase }: { testCase: TestCase }) {
     const [isPayloadOpen, setIsPayloadOpen] = useState(false);
     const [isHeadersOpen, setIsHeadersOpen] = useState(false);
 
-    const hasPayload = !!testCase.payload && testCase.payload !== "null" && !!testCase.payload.length && testCase.payload !== "{}";
-    const hasHeaders = !!testCase.headers && testCase.headers !== "null" && !!testCase.headers.length && testCase.headers !== "{}";
+    const hasPayload = !!testCase.payload
+    const hasHeaders = !!testCase.headers
+    // const hasPayload = !!testCase.payload && testCase.payload !== "null" && !!testCase.payload.length && testCase.payload !== "{}";
+    // const hasHeaders = !!testCase.headers && testCase.headers !== "null" && !!testCase.headers.length && testCase.headers !== "{}";
 
     const CreatedByIcon = () => {
         if (testCase.created_by === "go") {

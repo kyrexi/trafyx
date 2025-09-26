@@ -7,11 +7,11 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Cache modules
-COPY go.mod go.sum ./
+COPY apps/backend/go.mod apps/backend/go.sum ./
 RUN go mod download
 
 # Copy source
-COPY . .
+COPY apps/backend/ ./
 
 # Build static binary
 ENV CGO_ENABLED=0 GOOS=linux

@@ -1,0 +1,7 @@
+.git
+.gitignore
+node_modules
+apps/frontend/node_modules
+apps/frontend/.next
+apps/frontend/dist
+*.log

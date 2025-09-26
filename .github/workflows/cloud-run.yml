@@ -31,26 +31,26 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      # --- Build & Push Web ---
-      - name: Build Web Docker image
+      # --- Build & Push frontend ---
+      - name: Build frontend Docker image
         run: |
           docker build --platform=linux/amd64 \
             --build-arg NEXT_PUBLIC_BACKEND_URL=${{ secrets.NEXT_PUBLIC_BACKEND_URL }} \
             --build-arg NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }} \
             --build-arg NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }} \
             --build-arg NEXT_PUBLIC_POSTHOG_HOST=${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/web:latest \
-            -f apps/web/Dockerfile .
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:latest \
+            -f apps/frontend/Dockerfile .
 
-      - name: Push Web Docker image
+      - name: Push frontend Docker image
         run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/web:latest
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:latest
 
-      # --- Deploy Web ---
-      - name: Deploy Web to Cloud Run
+      # --- Deploy frontend ---
+      - name: Deploy frontend to Cloud Run
         run: |
-          gcloud run deploy web-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/web:latest \
+          gcloud run deploy frontend-service \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:latest \
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
@@ -59,18 +59,18 @@ jobs:
       - name: Build Server Docker image
         run: |
           docker build --platform=linux/amd64 \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/server:latest \
-            -f apps/server/Dockerfile .
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:latest \
+            -f apps/backend/Dockerfile .
 
       - name: Push Server Docker image
         run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/server:latest
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:latest
 
-      # --- Deploy Server ---
-      - name: Deploy Server to Cloud Run
+      # --- Deploy Backend ---
+      - name: Deploy Backend to Cloud Run
         run: |
-          gcloud run deploy server-service \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/server:latest \
+          gcloud run deploy backend-service \
+            --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:latest \
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated

@@ -49,7 +49,7 @@ jobs:
       # --- Deploy frontend ---
       - name: Deploy frontend to Cloud Run
         run: |
-          gcloud run deploy frontend-service \
+          gcloud run deploy fe-service \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/frontend:latest \
             --platform managed \
             --region ${{ env.REGION }} \
@@ -69,7 +69,7 @@ jobs:
       # --- Deploy Backend ---
       - name: Deploy Backend to Cloud Run
         run: |
-          gcloud run deploy backend-service \
+          gcloud run deploy be-service \
             --image ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPO }}/backend:latest \
             --platform managed \
             --region ${{ env.REGION }} \

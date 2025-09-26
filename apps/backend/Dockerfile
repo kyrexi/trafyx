@@ -28,10 +28,10 @@ RUN apk add --no-cache ca-certificates && update-ca-certificates
 COPY --from=builder /app/main ./main
 
 # Expose the application port (internal only; not published by compose)
-EXPOSE 5000
+EXPOSE 8080
 
 # Environment
-ENV PORT=5000
+ENV PORT=8080
 ENV GIN_MODE=release
 
 # Run

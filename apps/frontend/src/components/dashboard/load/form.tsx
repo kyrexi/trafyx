@@ -34,7 +34,7 @@ const formSchema = z.object({
         .number()
         .min(1, "Rate must be at least 1")
         .max(100, "Rate must be ≤ 100"),
-    time: z.number().min(1, "Time must be at least 1").max(9, "Time must be ≤ 9"),
+    time: z.number().min(1, "Time must be at least 1").max(15, "Time must be ≤ 15"),
 });
 
 export default function LoadTestForm({ userId }: { userId: string }) {
@@ -44,7 +44,7 @@ export default function LoadTestForm({ userId }: { userId: string }) {
     const [payload, setPayload] = useState<string>("");
     const [headers, setHeaders] = useState<string>("");
     const [rate, setRate] = useState<number>(1);
-    const [time, setTime] = useState<number>(9);
+    const [time, setTime] = useState<number>(5);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     if (isLoading) return <p>Loading...</p>;
@@ -80,7 +80,7 @@ export default function LoadTestForm({ userId }: { userId: string }) {
     }
 
     return (
-        <main className="container mx-auto p-4">
+        <main className="mx-auto p-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Form Column */}
                 <div className="space-y-4">
@@ -182,7 +182,7 @@ export default function LoadTestForm({ userId }: { userId: string }) {
                                             id="time"
                                             type="number"
                                             min={1}
-                                            max={9}
+                                            max={15}
                                             value={time}
                                             onChange={e => setTime(Number(e.target.value))}
                                             className="mt-2"

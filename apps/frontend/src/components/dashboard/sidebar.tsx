@@ -48,14 +48,14 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar collapsible="icon" className="border-r-1 border-r-neutral-300 dark:border-r-neutral-700">
+        <Sidebar variant="floating" collapsible="icon" className="">
             <SidebarHeader>
                 <Link
                     href="/"
-                    className="flex items-center justify-start py-2 px-2 gap-2 flex-row w-full"
+                    className="flex items-center justify-start py-2 gap-2 flex-row w-full"
                 >
                     <div className="bg-primary rounded-full shadow-xl text-white p-1">
-                        <Cog className=" m-0 h-6 p-0 rounded-full w-full" />
+                        <Cog className="size-6" />
                     </div>
                     {isSidebarOpen && (
                         <AnimatePresence>

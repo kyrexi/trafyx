@@ -197,6 +197,7 @@ export default function LoadTestForm({ userId }: { userId: string }) {
                                 </div>
                                 <CardFooter className="p-0">
                                     <Button
+                                        variant={"default"}
                                         type="submit"
                                         className="w-full mt-4"
                                         disabled={isFormDisabled || isSubmitting}

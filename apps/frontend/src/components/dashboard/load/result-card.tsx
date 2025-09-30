@@ -21,6 +21,7 @@ import {
     TrendingUp,
 } from "lucide-react";
 import { LoadTestResponse } from "@/types/load-test.type";
+import MetricCard from "./metric-card";
 
 interface LoadTestResultsProps {
     data: LoadTestResponse | null;
@@ -37,6 +38,42 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const formatTime = (value: string | number) => {
+        const valueStr = value.toString();
+        
+        // Check if the string contains 'ms' or 's' suffix
+        const msMatch = valueStr.match(/^([\d.]+)\s*ms$/i);
+        const sMatch = valueStr.match(/^([\d.]+)\s*s$/i);
+        
+        if (msMatch) {
+            // Value already has 'ms' unit
+            return { value: parseFloat(msMatch[1]).toFixed(2), unit: 'ms' };
+        } else if (sMatch) {
+            // Value already has 's' unit
+            return { value: parseFloat(sMatch[1]).toFixed(2), unit: 's' };
+        } else {
+            // No unit found, parse as number and infer
+            const numValue = parseFloat(valueStr);
+            // If value is large (> 100), assume milliseconds, otherwise seconds
+            if (numValue > 100 || (numValue > 10 && numValue < 100)) {
+                return { value: numValue.toFixed(2), unit: 'ms' };
+            } else {
+                return { value: numValue.toFixed(2), unit: 's' };
+            }
+        }
+    };
+
+    const getLatencyVariant = (latency: string | number): 'success' | 'default' | 'warning' | 'danger' => {
+        const time = formatTime(latency);
+        const value = parseFloat(time.value);
+        const inSeconds = time.unit === 's' ? value : value / 1000;
+
+        if (inSeconds < 0.2) return 'success';      // < 200ms - green
+        if (inSeconds < 0.5) return 'default';      // < 500ms - gray
+        if (inSeconds < 1.0) return 'warning';      // < 1s - orange
+        return 'danger';                             // >= 1s - red
     };
 
     const getStatusCodeColor = (code: string) => {
@@ -87,65 +124,79 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
                         </div>
 
                         {/* Key Metrics Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-blue-50 dark:bg-blue-950/50 p-4 rounded-lg border dark:border-blue-800/50">
-                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
-                                    <Zap className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Requests</span>
-                                </div>
-                                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{data.requests}</div>
-                            </div>
-
-                            <div className="bg-green-50 dark:bg-green-950/50 p-4 rounded-lg border dark:border-green-800/50">
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
-                                    <TrendingUp className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Throughput</span>
-                                </div>
-                                <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-                                    {data.throughput.toFixed(1)}<span className="text-sm">/sec</span>
-                                </div>
-                            </div>
-
-                            <div className="bg-purple-50 dark:bg-purple-950/50 p-4 rounded-lg border dark:border-purple-800/50">
-                                <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 mb-1">
-                                    <Clock className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Duration</span>
-                                </div>
-                                <div className="text-lg font-bold text-purple-900 dark:text-purple-100">{data.duration}</div>
-                            </div>
-
-                            <div className="bg-orange-50 dark:bg-orange-950/50 p-4 rounded-lg border dark:border-orange-800/50">
-                                <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 mb-1">
-                                    <Timer className="h-4 w-4" />
-                                    <span className="text-sm font-medium">Avg Wait</span>
-                                </div>
-                                <div className="text-lg font-bold text-orange-900 dark:text-orange-100">{data.wait}</div>
-                            </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                            <MetricCard
+                                icon={<Zap className="size-4" />}
+                                label="Requests"
+                                value={data.requests}
+                                variant="primary"
+                                size="sm"
+                            />
+                            <MetricCard
+                                icon={<TrendingUp className="size-4" />}
+                                label="Throughput"
+                                value={data.throughput.toFixed(1)}
+                                suffix="/sec"
+                                variant="default"
+                                size="sm"
+                            />
+                            <MetricCard
+                                icon={<Clock className="size-4" />}
+                                label="Duration"
+                                value={formatTime(data.duration).value}
+                                suffix={formatTime(data.duration).unit}
+                                variant="default"
+                                size="sm"
+                            />
+                            <MetricCard
+                                icon={<Timer className="size-4" />}
+                                label="Avg Wait"
+                                value={formatTime(data.wait).value}
+                                suffix={formatTime(data.wait).unit}
+                                variant="default"
+                                size="sm"
+                            />
                         </div>
 
                         {/* Latencies */}
                         <div>
                             <h4 className="text-md font-semibold mb-3 flex items-center gap-2 text-foreground">
-                                <Activity className="h-4 w-4" />
+                                <Activity className="size-4" />
                                 Response Times
                             </h4>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded border dark:border-gray-700">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">Mean</div>
-                                    <div className="font-semibold text-foreground">{data.latencies.mean}</div>
-                                </div>
-                                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded border dark:border-gray-700">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">50th Percentile</div>
-                                    <div className="font-semibold text-foreground">{data.latencies.p50}</div>
-                                </div>
-                                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded border dark:border-gray-700">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">95th Percentile</div>
-                                    <div className="font-semibold text-foreground">{data.latencies.p95}</div>
-                                </div>
-                                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded border dark:border-gray-700">
-                                    <div className="text-xs text-gray-600 dark:text-gray-400">99th Percentile</div>
-                                    <div className="font-semibold text-foreground">{data.latencies.p99}</div>
-                                </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+                                <MetricCard
+                                    icon={null}
+                                    label="Mean"
+                                    value={formatTime(data.latencies.mean).value}
+                                    suffix={formatTime(data.latencies.mean).unit}
+                                    variant={getLatencyVariant(data.latencies.mean)}
+                                    size="sm"
+                                />
+                                <MetricCard
+                                    icon={null}
+                                    label="50th Percentile"
+                                    value={formatTime(data.latencies.p50).value}
+                                    suffix={formatTime(data.latencies.p50).unit}
+                                    variant={getLatencyVariant(data.latencies.p50)}
+                                    size="sm"
+                                />
+                                <MetricCard
+                                    icon={null}
+                                    label="95th Percentile"
+                                    value={formatTime(data.latencies.p95).value}
+                                    suffix={formatTime(data.latencies.p95).unit}
+                                    variant={getLatencyVariant(data.latencies.p95)}
+                                    size="sm"
+                                />
+                                <MetricCard
+                                    icon={null}
+                                    label="99th Percentile"
+                                    value={formatTime(data.latencies.p99).value}
+                                    suffix={formatTime(data.latencies.p99).unit}
+                                    variant={getLatencyVariant(data.latencies.p99)}
+                                    size="sm"
+                                />
                             </div>
                         </div>
 
@@ -154,13 +205,12 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
                             <h4 className="text-md font-semibold mb-3 text-foreground">Status Codes</h4>
                             <div className="flex flex-wrap gap-2">
                                 {Object.entries(data.status_codes).map(([code, count]) => (
-                                    <Badge
+                                    <div
                                         key={code}
-                                        variant="outline"
-                                        className={`${getStatusCodeColor(code)} border-current`}
+                                        className={`${getStatusCodeColor(code)} w-fit h-8 flex items-center justify-center border px-2 py-1 rounded-md text-sm font-medium`}
                                     >
                                         {code}: {count}
-                                    </Badge>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -169,7 +219,7 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
                         <div>
                             <h4 className="text-md font-semibold mb-3 text-foreground">Data Transfer</h4>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="flex items-center gap-3 bg-green-50 dark:bg-green-950/50 p-3 rounded border dark:border-green-800/50">
+                                <div className="flex items-center gap-3 bg-green-50 dark:bg-green-950/50 p-3 rounded-lg border dark:border-green-800/50">
                                     <Download className="h-5 w-5 text-green-600 dark:text-green-400" />
                                     <div>
                                         <div className="text-sm text-green-600 dark:text-green-400">Downloaded</div>
@@ -181,7 +231,7 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3 bg-red-50 dark:bg-red-950/50 p-3 rounded border dark:border-red-800/50">
+                                <div className="flex items-center gap-3 bg-red-50 dark:bg-red-950/50 p-3 rounded-lg border dark:border-red-800/50">
                                     <Upload className="h-5 w-5 text-red-600 dark:text-red-400" />
                                     <div>
                                         <div className="text-sm text-red-600 dark:text-red-400">Uploaded</div>
@@ -196,12 +246,11 @@ export default function LoadTestResults({ data, isLoading, error }: LoadTestResu
                             </div>
                         </div>
 
-
                         {/* Errors */}
                         {data.errors && data.errors > 0 && (
                             <div>
                                 <h4 className="text-md font-semibold mb-3 flex items-center gap-2 text-red-600">
-                                    <XCircle className="h-4 w-4" />
+                                    <XCircle className="size-4" />
                                     Errors ({data.errors})
                                 </h4>
                                 {data.error ? (
